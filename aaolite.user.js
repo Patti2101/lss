@@ -1,14 +1,9 @@
 // ==UserScript==
 // @name         AAO Config Lite
-// @version      1.1
+// @version      1.2
 // @description  AAO Config Lite
 // @author       JuMaHo & Jan (KBOE2)
-// @include      *://www.leitstellenspiel.de/
-// @include      *://www.leitstellenspiel.de/*
-// @include      *://www.leitstellenspiel.de/leitstellenansicht
-// @include      *://www.leitstellenspiel.de/leitstellenansicht*
-// @exclude      *://www.leitstellenspiel.de/alliance_threads*
-// @exclude      *://www.leitstellenspiel.de/alliance_messages*
+// @include      *://www.leitstellenspiel.de/aaos/*
 // @grant        none
 // ==/UserScript==
 (function() {
@@ -18,6 +13,8 @@
         fire: 1, // Löschfahrzeuge oder Tanklöschfahrzeuge
         lf_only : 0, // Löschfahrzeuge
         tlf_only : 0, // Tanklöschfahrzeuge
+        wasser_amount : 1, // Liter Wasser
+        wasser_amount_tlf : 1, // Liter Wasser - Nur TLF
         elw : 1, // Einsatzleitfahrzeuge 1
         elw2 : 0, // Einsatzleitfahrzeuge 2
         elw1_or_elw2 : 0, // ELW 1, ELW 2 oder AB-Einsatzleitung
@@ -97,15 +94,19 @@
         thw_anh_schlb: 1, // Anh SchlB
         thw_anh_mzb: 1, // Anh MzB
         thw_lkw_7_lkr_19_tm: 1, // LKW 7 Lkr 19 tm
+        rescue_dogs_thw: 1, // Anhänger Hundetransport
         // SEG
         ktw_b: 1, // KTW Typ B
         seg_elw: 1, // ELW 1 (SEG)
         seg_gw_san: 1, // GW-San
+        rescue_dogs_seg: 1, // Rettungshundefahrzeug
         // Wasserrettung
         gw_taucher: 1, // GW-Taucher
         gw_wasserrettung: 1, // GW-Wasserrettung
         boot: 1, // Boote (Allgemein)
-        mzb: 1 // Mehrzweckboot
+        mzb: 1, // Mehrzweckboot
+        // Rettungshundestaffel
+        rescue_dogs: 1 // Anhänger Hundetransport oder Rettungshundefahrzeug
     }
 
     $.each(aaos, function(key, value) {

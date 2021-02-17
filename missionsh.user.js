@@ -1,37 +1,193 @@
 // ==UserScript==
 // @name         MissionSH
-// @version      1.5.8
+// @version      2.0.6
 // @description  Einsätze anzeigen oder ausblenden anhand der Labelfarben grün, gelb, rot
-// @author       JuMaHo & Jan (KBOE2)
+// @author       JuMaHo
 // @include      *://www.leitstellenspiel.de/
 // @grant        none
-// @namespace      https://github.com/JuMaH0/lss/raw/master/missionsh.user.js
+// @namespace    https://github.com/JuMaH0/lss/raw/master/missionsh.user.js
 // ==/UserScript==
-(function() {
-	const hidden_at = 0; // 0 ≙ Einsätze in Liste und auf Karte ausblenden; 1 ≙ Einsätze nur in Liste ausblenden 2 ≙ Einsätze nur auf Karte ausblenden
-	const colors = {
-		"green": "rgb(50, 205, 50)",
-		"yellow": "rgb(254, 220, 50)",
-		"red": "rgb(201, 48, 44)"
-	}
-	$('head').append('<style>.circle{cursor: pointer;width: 20px; height: 20px; border: 1px solid black; text-align: center; border-radius: 20px;}</style>');
-	$.each(colors, function(color, code) {
-		$('head').append('<style>.circle.circle-' + color + '[status="enabled"]{background-color: ' + code + ';}</style>');
-		$('head').append('<style>.circle.circle-' + color + '[status="disabled"]{ background: url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' version=\'1.1\' preserveAspectRatio=\'none\' viewBox=\'0 0 100 100\' style=\'background-color: ' + code + ';\'><path d=\'M100 0 L0 100\' stroke=\'black\' stroke-width=\'1\'/><path d=\'M0 0 L100 100\' stroke=\'black\' stroke-width=\'2\'/></svg>");\nbackground-repeat:no-repeat;\nbackground-position:center center;\nbackground-size: 100% 100%, auto;}</style>');
-		$(".navbar-right").append('<li><a id="' + color + '" class="switchMissionStateView"><div id="' + color + '_circle" class="circle circle-' + color + '" status="enabled" color="' + color + '"></div></a></li>');
-	});
-	setInterval(function(){
-		$('.circle').each(function() {
-			let color = $(this).attr("color");
-			if((hidden_at === 0 || hidden_at === 1) && !$('.mission_panel_' + color).find('.progress-bar-success')){$('#' + color + '_circle').attr('status') === "enabled" ? $('.mission_panel_' + color).parent().show() : $('.mission_panel_' + color).parent().hide();}
-			if((hidden_at === 0 || hidden_at === 2) && !$('.mission_panel_' + color).find('.progress-bar-success')){$('#' + color + '_circle').attr('status') === "enabled" ? $(".leaflet-interactive[src*='" + color + "_images']").show() : $(".leaflet-interactive[src*='" + color + "_images']").hide();}
-		});
-		missionMarkerDistanceUpdate();
-	}, 20000);
-	$('.switchMissionStateView').click(function() {
-		if((hidden_at === 0 || hidden_at === 1) && !$('.mission_panel_' + this.id).find('.progress-bar-success')){$(this).children().attr('status') === "enabled" ? $(".mission_panel_" + this.id).parent().hide() : $(".mission_panel_" + this.id).parent().show();}
-		if((hidden_at === 0 || hidden_at === 2) && !$('.mission_panel_' + this.id).find('.progress-bar-success')){$('#' + this.id + '_circle').attr('status') === "enabled" ? $(".leaflet-interactive[src*='" + this.id + "_images']").hide() : $(".leaflet-interactive[src*='" + this.id + "_images']").show();}
-		$(this).children().attr('status') === "enabled" ? $(this).children().attr('status', 'disabled') : $(this).children().attr('status', 'enabled');
-		missionMarkerDistanceUpdate();
-	});
-})();
+(function(){if(localStorage.getItem('missionshshowmap')==='true'){var showmapchecked='checked'};if(localStorage.getItem('missionshinvolved')==='true'){var involvedchecked='checked'};if(localStorage.getItem('missionshuninvolved')==='true'){var uninvolvedchecked='checked'};if(localStorage.getItem('missionshpatients')==='true'){var patientschecked='checked'};if(localStorage.getItem('missionshparamedic')==='true'){var paramedicchecked='checked'};if(localStorage.getItem('missionshrecruitment')==='true'){var recruitmentchecked='checked'};if(localStorage.getItem('missionshradio')==='true'){var radiochecked='checked'};if(localStorage.getItem('missionshminimize')==='true'){var minimizechecked='checked'};$("body").prepend(`
+
+<div class="modal fade" id="missionshModal" tabindex="-1" role="dialog" aria-labelledby="missionshModalLabel" aria-hidden="true" style="z-index: 9999;">
+
+  <div class="modal-dialog modal-dialog-centered" role="document">
+
+   <div class="modal-content" style="margin-top: 80px;">
+
+    <form id="role-form"  method="get">
+
+        <div class="modal-header" style="border-bottom: 0px;">
+
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+
+
+
+            <h4 class="modal-title"></h4>
+
+        </div>
+
+        <div class="modal-body">
+
+
+
+            <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxshowmap" ${showmapchecked}>
+
+                     <label class="form-check-label" for="cbxshowmap"> Einsätze auf Karte ausblenden
+
+            </div>
+
+
+
+   <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxinvolved" ${involvedchecked}>
+
+                     <label class="form-check-label" for="cbxinvolved"> Einsätze <b>MIT</b> eigener Beteiligung anzeigen
+
+            </div>
+
+
+
+
+
+   <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxuninvolved" ${uninvolvedchecked}>
+
+                <label class="form-check-label" for="cbxuninvolved"> Einsätze <b>OHNE</b> eigener Beteiligung anzeigen
+
+            </div>
+
+
+
+
+
+   <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxpatients" ${patientschecked}>
+
+                <label class="form-check-label" for="cbxpatients"> Einsätze mit Patienten anzeigen
+
+            </div>
+
+
+
+
+
+           <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxparamedic" ${paramedicchecked}>
+
+                <label class="form-check-label" for="cbxparamedic"> Einsätze anzeigen wenn RD benötigt
+
+            </div>
+
+
+
+           <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxrecruitment" ${recruitmentchecked}>
+
+                <label class="form-check-label" for="cbxrecruitment"> Einsätze anzeigen wenn Verstärkung benötigt
+
+            </div>
+
+
+
+
+
+           <div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxradio" ${radiochecked}>
+
+                <label class="form-check-label" for="cbxradio"> Einsätze mit Sprechwunsch anzeigen
+
+            </div>
+
+
+
+
+
+<div class="form-group col-md-12">
+
+
+
+                <input class="form-check-input" type="checkbox" value="" id="cbxminimize" ${minimizechecked}>
+
+                <label class="form-check-label" for="ccbxminimize"> Einsatzliste  minimalisieren ( <a href="https://github.com/JuMaH0/lss/raw/master/minimizesh.user.js">Script MinimizeSH benötigt</a> )
+
+            </div>
+
+
+
+
+
+
+
+            <div class="clearfix"></div>
+
+        </div>
+
+        <div class="modal-footer">
+
+
+
+            <button type="submit" id="savemissionsh" class="btn btn-success" >Speichern</button>
+
+            <button type="button" class="btn btn-danger" data-dismiss="modal">Abbrechen</button>
+
+
+
+        </div>
+
+    </form>
+
+</div>`);$("#navbar_profile_link").parent().after(`<li role="presentation"><a style="cursor:pointer" id="MissionSh" data-toggle="modal" data-target="#missionshModal"><img class="icon icons8-Share" src="https://imagizer.imageshack.com/img922/730/GRFYDq.png" width="24" height="24"> MissionSH</a></li>`);$("body").on("click","#savemissionsh",function(){var save={};save.showmap=$('#cbxshowmap')[0].checked;save.involved=$('#cbxinvolved')[0].checked;save.uninvolved=$('#cbxuninvolved')[0].checked;save.patients=$('#cbxpatients')[0].checked;save.paramedic=$('#cbxparamedic')[0].checked;save.recruitment=$('#cbxrecruitment')[0].checked;save.radio=$('#cbxradio')[0].checked;save.minimize=$('#cbxminimize')[0].checked;localStorage.missionshshowmap=save.showmap;localStorage.missionshinvolved=save.involved;localStorage.missionshuninvolved=save.uninvolved;localStorage.missionshpatients=save.patients;localStorage.missionshparamedic=save.paramedic;localStorage.missionshrecruitment=save.recruitment;localStorage.missionshradio=save.radio;localStorage.missionshminimize=save.minimize;alert('Gespeichert, Seite wird nun neu geladen!');window.location.reload();});var circle='width: 20px; height: 20px; border: 1px solid black; text-align: center; border-radius: 20px;';$("#search_input_field_missions").before('<div style="float: right; margin-left: 10px;"><a id="red"><div id="red_circle" style="background-color: #c9302c; cursor: pointer;'+circle+'"></div></a>');$("#search_input_field_missions").before('<div style="float: right; margin-left: 10px;"><a id="yellow"><div id="yellow_circle" style="background-color: #fedc32; cursor: pointer;'+circle+'"></div></a>');$("#search_input_field_missions").before('<div style="float: right;"><a id="green"><div id="green_circle" style="background-color: #32cd32; cursor: pointer;'+circle+'"></div></a>');$(".mission_panel_green").css({'display':"block",'animation':'fadeIn 1s linear forwards'});$(".mission_panel_yellow").css({'display':"block",'animation':'fadeIn 1s linear forwards'});$(".mission_panel_red").css({'display':"block",'animation':'fadeIn 1s linear forwards'});var tid=setInterval(mycode,5000);function mycode(){let missionDeleteOrigin=missionDelete;missionDelete=function(e){missionDeleteOrigin(e),$("#mission_"+e).addClass("finished")};var status_green=document.getElementById('green_circle').style.backgroundColor;var status_yellow=document.getElementById('yellow_circle').style.backgroundColor;var status_red=document.getElementById('red_circle').style.backgroundColor;if(status_green==='rgb(211, 211, 211)'){$(".mission_panel_green").css({'display':"none"});if(showmapchecked==='checked'){$(".leaflet-interactive[src*='green_images']").css({'display':'none'})
+$(".leaflet-interactive[src*='gruen']").css({'display':'none'})
+localStorage.greenleaflet='none';}}else{$(".mission_panel_green").css({'display':"block"});$(".leaflet-interactive[src*='green_images']").css({'display':'block'});$(".leaflet-interactive[src*='gruen']").css({'display':'block'});localStorage.greenleaflet='block';}
+if(status_yellow==='rgb(211, 211, 211)'){$(".mission_panel_yellow").css({'display':'none'})
+if(showmapchecked==='checked'){$(".leaflet-interactive[src*='yellow_images']").css({'display':'none'});$(".leaflet-interactive[src*='gelb']").css({'display':'none'});localStorage.yellowleaflet='none';}}else{$(".mission_panel_yellow").css({'display':'block'});$(".leaflet-interactive[src*='yellow_images']").css({'display':'block'});$(".leaflet-interactive[src*='gelb']").css({'display':'block'});localStorage.yellowleaflet='block';}
+if(status_red==='rgb(211, 211, 211)'){$(".mission_panel_red").css({'display':'none'})
+if(showmapchecked==='checked'){$(".leaflet-interactive[src*='red_images']").css({'display':'none'})
+$(".leaflet-interactive[src*='rot']").css({'display':'none'})
+localStorage.redleaflet='none';}}else{$(".mission_panel_red").css({'display':'block'})
+$(".leaflet-interactive[src*='red_images']").css({'display':'block'});$(".leaflet-interactive[src*='rot']").css({'display':'block'});localStorage.redleaflet='block';}
+var mission=$('[id^=mission_panel_heading_]');var x;var mission_count=mission.length;for(x=0;x<mission_count;x++){var mission_id=$(mission[x]).attr('id').match(/[0-9]+/);var allpatients=document.querySelector('#mission_patients_'+mission_id+'');var needrd=allpatients.querySelectorAll("div.alert-danger");if(paramedicchecked==='checked'&&needrd[0]!=undefined){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});}
+if(patientschecked==='checked'&&$('#mission_patients_'+mission_id+'').html()){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});}
+if(recruitmentchecked==='checked'&&$('#mission_missing_'+mission_id+'').html()){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});}
+if($(radiochecked==='checked'&&"#mission_missing_short_"+mission_id+"").html()){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_yellow").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_green").css({'display':'block'});}
+if($(uninvolvedchecked==='checked'&&"#mission_participant_"+mission_id+"").hasClass("glyphicon-user hidden")){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_yellow").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_green").css({'display':'block'});}
+if($(involvedchecked==='checked'&&"#mission_participant_new_"+mission_id+"").hasClass("glyphicon-asterisk hidden")){$("#mission_panel_"+mission_id+".mission_panel_red").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_yellow").css({'display':'block'});$("#mission_panel_"+mission_id+".mission_panel_green").css({'display':'block'});}}}
+$("#green").click(function(){if($('.mission_panel_green').css('display')==='block'){$(".mission_panel_green").css({'display':'none'})
+$("#green_circle").css({'background-color':'#D3D3D3'});if(showmapchecked==='checked'){$(".leaflet-interactive[src*='green_images']").css({'display':'none'})
+$(".leaflet-interactive[src*='gruen']").css({'display':'none'})
+localStorage.greenleaflet='none';}}else{$(".mission_panel_green").css({'display':'block'});$("#green_circle").css({'background-color':'#32cd32'});$(".leaflet-interactive[src*='green_images']").css({'display':'block'});$(".leaflet-interactive[src*='gruen']").css({'display':'block'});localStorage.redleaflet='block';}});$("#yellow").click(function(){if($('.mission_panel_yellow').css('display')==='block'){$(".mission_panel_yellow").css({'display':'none'})
+$("#yellow_circle").css({'background-color':'#D3D3D3'});if(showmapchecked==='checked'){$(".leaflet-interactive[src*='yellow_images']").css({'display':'none'})
+$(".leaflet-interactive[src*='gelb']").css({'display':'none'})
+localStorage.yellowleaflet='none';}}else{$(".mission_panel_yellow").css({'display':'block'});$("#yellow_circle").css({'background-color':'#fedc32'});$(".leaflet-interactive[src*='yellow_images']").css({'display':'block'});$(".leaflet-interactive[src*='gelb']").css({'display':'block'});localStorage.yellowleaflet='block';}});$("#red").click(function(){if($('.mission_panel_red').css('display')==='block'){$('.mission_panel_red').css({'display':'none'}).fadeOut()
+$("#red_circle").css({'background-color':'#D3D3D3'});if(showmapchecked==='checked'){$(".leaflet-interactive[src*='red_images']").css({'display':'none'})
+$(".leaflet-interactive[src*='rot']").css({'display':'none'})
+localStorage.redleaflet='none';}}else{$(".mission_panel_red").css({'display':'block'});$("#red_circle").css({'background-color':'#c9302c'});$(".leaflet-interactive[src*='red_images']").css({'display':'block'})
+$(".leaflet-interactive[src*='rot']").css({'display':'block'})
+localStorage.redleaflet='block';}});})();
+
+
+
+
